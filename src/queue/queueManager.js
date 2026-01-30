@@ -2,6 +2,29 @@ const {Queue} = require('bullmq');
 const redis = require('./redis');
 const logger = require('/config/logger');
 
+class QueueBuilder {
+    constructor(name){
+        this.queueName = name;
+        this.queueOptions = {
+            connection: redis,
+            defaultJobOptions: {},
+        };
+    }
+
+    withPriority(priority){
+        const priorityMap ={ critical: 1, high: 2, normal: 3};
+        this.queueOptions.defaultJobOptions.priority = priorityMap[priority];
+        return this;
+    }
+    withTimeout(timeout){
+        this.queueOptions.defaultJobOptions.timeout = timeout;
+        return this;
+    }
+    build(){
+        return new Queue(this.queueName,this.queueOptions);
+    }
+}
+
 class QueueManager{
     constructor(){
         if(QueueManager.instance){
@@ -22,14 +45,24 @@ class QueueManager{
     }
 
     initializeQueues(){
-        ['critical','high','normal',].forEach(priority => {
-            this.queues[priority] = new Queue(`${priority}-jobs`,{
-                connection: redis,
-            });
-        });
+        this.queues.critical = new QueueBuilder('critical-jobs')
+        .withPriority('critical')
+        .withTimeout(30000)
+        .build();
 
-        logger.info('Queues initialized')
+        this.queues.high = new QueueBuilder('high-jobs')
+        .withPriority('high')
+        .withTimeout(30000)
+        .build();
+
+        this.queues.normal = new QueueBuilder('normal-jobs')
+        .withPriority('normal')
+        .withTimeout(30000)
+        .build();
+
+        logger.info('Queues initialized');
     }
+    
     getQueue(priority){
         return this.queues[priority];
     }
