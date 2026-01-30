@@ -11,10 +11,15 @@ class Config{
             port: parseInt(process.env.PORT,10) || 3000,
         };
 
+        this.redis = {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+        };
+
         this.postgres = {
             host: process.env.POSTGRES_HOST || 'localhost',
             port: parseInt(process.env.POSTGRES_PORT, 10) || 5432,
-            user: process.env.POSTGRES_PASSWORD || 'postgres',
+            user: process.env.POSTGRES_USER || 'postgres',
             password: process.env.POSTGRES_PASSWORD || 'postgres',
             database: process.env.POSTGRES_DB || 'job_queue_db',
         };
