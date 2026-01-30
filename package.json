@@ -7,14 +7,19 @@
     "start": "node src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["bullmq","redis","postgresql","job-queue"],
+  "keywords": [
+    "bullmq",
+    "redis",
+    "postgresql",
+    "job-queue"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "dotenv": "^16.6.1",
     "express": "^4.18.2",
-    "dotenv": "^16.3.1",
-    "pg": "^8.11.0",
-    "ioredis": "^5.3.2"
+    "ioredis": "^5.3.2",
+    "pg": "^8.11.0"
   }
 }
