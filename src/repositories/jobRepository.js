@@ -4,7 +4,7 @@ const logger =require('../config/logger');
 class JobRepository {
     async createJob(jobData){
         const query  = `
-        INSERT INTO jobs (job_id, name, priority,status,data)
+        INSERT INTO jobs (job_id, name, priority,status,data,created_by)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING *
      `;
@@ -15,6 +15,7 @@ class JobRepository {
         jobData.priority,
         jobData.status || 'pending',
         JSON.stringify(jobData.data),
+        jobData.createdBy || null,
      ];
 
      try {
