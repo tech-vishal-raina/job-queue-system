@@ -5,10 +5,12 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "worker": "node src/workers/jobWorker.js",
+    "worker:dev": "nodemon src/workers/jobWorker.js",
     "migrate": "node src/database/migrations/runMigrations.js",
     "seed": "node src/database/seeds/seedJobs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
-
   },
   "keywords": [
     "bullmq",
@@ -27,5 +29,8 @@
     "ioredis": "^5.9.2",
     "pg": "^8.11.0",
     "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
   }
 }
