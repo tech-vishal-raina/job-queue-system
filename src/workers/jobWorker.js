@@ -8,32 +8,68 @@ class JobWorker{
     constructor(){
         this.strategyFactory = new JobStrategyFactory();
         this.workers = {};
+
+        this.retryDelays = [1000, 5000, 30000];
+    }
+
+    calculateBackoff(attemptsMade){
+        return this.retryDelays[Math.min(attemptsMade -1, this.retryDelays.length -1)];
     }
 
     async processJob(job){
+        const startTime = Date.now();
         const {jobId, jobType, data} = job.data;
+        const attemptNumber = job.attemptsMade +1;
 
         try{
-            logger.info('Processing job', { jobId, jobType});
+            logger.info('Processing job', { 
+                jobId,
+                jobType,
+                attempt: attemptNumber
+            });
 
-            await jobRepository.updateJobStatus(jobId, 'processing');
+            await jobRepository.updateJobStatus ( jobId, 'processing',{
+                attempts: attemptNumber,
+            });
 
             const strategy = this.strategyFactory.getStrategy(jobType);
             const result = await strategy.execute(data);
+             
+            const duration = Date.now() - startTime;
 
-            await jobRepository.updateJobStatus(jobId, 'completed', {result});
+            await jobRepository.updateJobStatus(jobId, 'completed', {
+                result, 
+                attempts: attemptNumber,
+        });
 
-            logger.info('Job completed successfully', {jobId});
+            logger.info('Job completed successfully', {
+                jobId,
+                duration,
+                attempt: attemptNumber
+            });
 
             return result;
         } catch (error){
-            logger.error('Job processing failed', {jobId, error: error.message});
+            logger.error('Job processing failed', 
+                {jobId, 
+                error: error.message,
+             attempt: attemptNumber,});
 
-            await jobRepository.updateJobStatus(jobId, 'failed', {
-                errorMessage: error.message,
-            });
+             if(attemptNumber >= 3)  {
+                await jobRepository.updateJobStatus(jobId, 'failed', {
+                    errorMessage: error.message,
+                    attempts: attemptNumber,
+                });
+             } else {
+                await jobRepository.updateJobStatus(jobId, 'retrying',{
+                       errorMessage: error.message,
+                       attempts: attemptNumber,
+                });
+                  
+             }
 
-            throw error;
+             throw error;
+
         }
     }
 
@@ -48,14 +84,24 @@ class JobWorker{
             {
                 connection: redis,
                 concurrency: 5,
+                settings: {
+                    backoffStrategy: (attemptsMade) => {
+                        return this.calculateBackoff(attemptsMade);
+                    },
+                },
             }
         );
+
         worker.on('completed', (job) => {
             logger.info('Worker completed job', {jobId: job.data.jobId});
         });
 
         worker.on('failed', (job,err) => {
-            logger.error('Worker failed job', {jobId: job?.data?.jobId, error:err.message});
+            logger.error('Worker failed job',
+                 {jobId: job?.data?.jobId, 
+                    error:err.message,
+                       attemptsMade: job?.attemptsMade,
+        });
         });
 
         this.workers[priority] = worker;

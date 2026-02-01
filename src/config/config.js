@@ -23,6 +23,15 @@ class Config{
             password: process.env.POSTGRES_PASSWORD || 'postgres',
             database: process.env.POSTGRES_DB || 'job_queue_db',
         };
+
+        this.queue= {
+            maxJobsPerWorker: parseInt(process.env.MAX_JOBS_PER_WORKER, 10) || 5,
+            JobTimeout: parseInt(process.env.JOB_TIMEOUT, 10) || 30000,
+            retryStrategy: {
+                attempts: 3,
+                delays: [1000, 5000, 30000],
+            },
+        };
         Config.instance = this;
     }
     static getInstance(){
