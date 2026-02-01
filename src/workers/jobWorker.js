@@ -1,7 +1,7 @@
 const { Worker} = require('bullmq');
 const redis = require('../queue/redis');
-const logger = require('../repositories/jobRepository');
-const { JobStrategyFactory } = require('../queue/strategies/jobStrategy');
+const logger = require('../config/logger');
+const { JobStrategyFactory } = require('../queue/strategies/jobStrategies');
 const jobRepository = require('../repositories/jobRepository');
 const config = require('../config/config');
 
@@ -48,7 +48,7 @@ class JobWorker{
                 attempts: attemptNumber,
         });
 
-            this.metrices.processed++;
+            this.metrics.processed++;
 
             logger.info('Job completed successfully', {
                 jobId,
@@ -67,7 +67,7 @@ class JobWorker{
              duration,
             });
 
-            this.metrices.failed++;
+            this.metrics.failed++;
 
              if(attemptNumber >= 3)  {
 

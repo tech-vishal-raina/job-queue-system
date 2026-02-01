@@ -11,6 +11,7 @@ class RedisConnection {
         this.client = new Redis({
             host: config.redis.host,
             port: config.redis.port,
+            maxRetriesPerRequest: null,
             retryStrategy: (times) => {
                 return Math.min(times * 50, 2000);
             },
@@ -34,4 +35,4 @@ class RedisConnection {
     }
 }
 
-module.exports = RedisConncetion.getInstance();
+module.exports = RedisConnection.getInstance();
