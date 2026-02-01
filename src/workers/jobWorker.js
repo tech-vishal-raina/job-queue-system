@@ -8,8 +8,13 @@ class JobWorker{
     constructor(){
         this.strategyFactory = new JobStrategyFactory();
         this.workers = {};
-
         this.retryDelays = [1000, 5000, 30000];
+
+        this.metrics = {
+            processed: 0,
+            failed: 0,
+            startTime: Date.now(),
+        };
     }
 
     calculateBackoff(attemptsMade){
@@ -42,6 +47,8 @@ class JobWorker{
                 attempts: attemptNumber,
         });
 
+            this.metrices.processed++;
+
             logger.info('Job completed successfully', {
                 jobId,
                 duration,
@@ -59,6 +66,8 @@ class JobWorker{
              duration,
             });
 
+            this.metrices.failed++;
+
              if(attemptNumber >= 3)  {
 
                 await this.handleDeadLetterQueue(jobId, job.data, error.message, attemptNumber);
@@ -68,7 +77,7 @@ class JobWorker{
                     attempts: attemptNumber,
                 });
              } else {
-                
+
                 await jobRepository.updateJobStatus(jobId, 'retrying',{
                        errorMessage: error.message,
                        attempts: attemptNumber,
@@ -80,6 +89,21 @@ class JobWorker{
 
         }
     }
+    startMetricsReporting() {
+      setInterval(() => {
+      const uptime = Date.now() - this.metrics.startTime;
+      const throughput = this.metrics.processed / (uptime / 1000);
+      const failureRate = this.metrics.failed / (this.metrics.processed + this.metrics.failed) || 0;
+
+      logger.info('Worker metrics', {
+        processed: this.metrics.processed,
+        failed: this.metrics.failed,
+        throughput: throughput.toFixed(2),
+        failureRate: (failureRate * 100).toFixed(2) + '%',
+        uptime: Math.floor(uptime / 1000) + 's',
+      });
+    }, 5000); 
+  }
 
 
     initializeWorker(priority){
@@ -123,6 +147,8 @@ class JobWorker{
         ['critical','high','normal',].forEach(priority => {
             this.initializeWorker(priority);
         });
+            
+        this.startMetricsReporting();
 
         logger.info('All workers started successfully');
     }
