@@ -50,17 +50,25 @@ class JobWorker{
 
             return result;
         } catch (error){
+            const duration = Date.now() - startTime;
+
             logger.error('Job processing failed', 
                 {jobId, 
                 error: error.message,
-             attempt: attemptNumber,});
+             attempt: attemptNumber,
+             duration,
+            });
 
              if(attemptNumber >= 3)  {
+
+                await this.handleDeadLetterQueue(jobId, job.data, error.message, attemptNumber);
+
                 await jobRepository.updateJobStatus(jobId, 'failed', {
                     errorMessage: error.message,
                     attempts: attemptNumber,
                 });
              } else {
+                
                 await jobRepository.updateJobStatus(jobId, 'retrying',{
                        errorMessage: error.message,
                        attempts: attemptNumber,
@@ -72,6 +80,7 @@ class JobWorker{
 
         }
     }
+
 
     initializeWorker(priority){
         const queueName = `${priority}-jobs`;
@@ -117,11 +126,33 @@ class JobWorker{
 
         logger.info('All workers started successfully');
     }
+
+    async handleDeadLetterQueue(jobId, jobData, errorMessage, attempts){
+        try {
+            await jobRepository.moveToDDeadLetterQueue(
+                jobId,
+                jobData,
+                errorMessage,
+                attempts
+            );
+            logger.warn('Job moved to dead letter queue',{
+                jobId,
+                attempts,
+                reason: errorMessage
+            });
+        } catch (error) {
+            logger.error('Failed to move job to DLQ', {
+                jobId,
+                error: error.message
+            });
+        }
+    }
 }
 
 if(require.main === module){
     const worker = new JobWorker();
     worker.start();
-}
+};
+
 
 module.exports = JobWorker;
