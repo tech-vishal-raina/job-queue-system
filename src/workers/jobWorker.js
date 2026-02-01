@@ -3,6 +3,7 @@ const redis = require('../queue/redis');
 const logger = require('../repositories/jobRepository');
 const { JobStrategyFactory } = require('../queue/strategies/jobStrategy');
 const jobRepository = require('../repositories/jobRepository');
+const config = require('../config/config');
 
 class JobWorker{
     constructor(){
@@ -116,7 +117,11 @@ class JobWorker{
             },
             {
                 connection: redis,
-                concurrency: 5,
+                concurrency: config.queue.maxJobsPerWorker,
+                limiter: {
+                  max: 10,
+                  duration: 1000,
+                },
                 settings: {
                     backoffStrategy: (attemptsMade) => {
                         return this.calculateBackoff(attemptsMade);
