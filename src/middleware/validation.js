@@ -8,8 +8,12 @@ class ValidationMiddleware {
       priority: Joi.string().valid('critical', 'high', 'normal').required(),
       jobType: Joi.string().required().valid(
         'email-processing',
-        'data-processing'
+        'data-processing',
+        'report-generation',
+        'image-processing',
+        'notification',
       ),
+      
       data: Joi.object().required(),
     });
 

@@ -28,11 +28,53 @@ class DataProcessingStrategy extends JobStrategy {
     }
 }
 
+class ReportGenerationStrategy extends JobStrategy {
+  async execute(jobData) {
+    logger.info('Processing report generation job', { jobData });
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    return {
+      success: true,
+      reportId: `report_${Date.now()}`,
+      reportType: jobData.reportType || 'standard',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+class ImageProcessingStrategy extends JobStrategy {
+  async execute(jobData) {
+    logger.info('Processing image job', { jobData });
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    return {
+      success: true,
+      imagesProcessed: jobData.imageCount || 1,
+      format: jobData.format || 'jpeg',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+class NotificationStrategy extends JobStrategy {
+  async execute(jobData) {
+    logger.info('Processing notification job', { jobData });
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return {
+      success: true,
+      notificationsSent: jobData.userCount || 1,
+      channel: jobData.channel || 'push',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
 class JobStrategyFactory {
     constructor(){
         this.strategies ={
             'email-processing': new EmailProcessingStrategy(),
             'data-processing': new DataProcessingStrategy(),
+            'report-generation': new ReportGenerationStrategy(),
+            'image-processing': new ImageProcessingStrategy(),
+            'notification': new NotificationStrategy(),
         };
     }
 
@@ -42,6 +84,10 @@ class JobStrategyFactory {
             throw new Error(`Unknown job type: ${jobType}`);
         }
         return strategy;
+    }
+
+    getSupportedJobTypes(){
+        return Object.Keys(this.strategies);
     }
 }
 
