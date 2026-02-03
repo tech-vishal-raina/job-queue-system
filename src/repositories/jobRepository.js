@@ -1,11 +1,11 @@
 const database = require('../database/connection');
-const logger =require('../config/logger');
+const logger = require('../config/logger');
 
 class JobRepository {
     async createJob(jobData){
         const query  = `
         INSERT INTO jobs (job_id, name, priority,status,data,created_by)
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
      `;
 
@@ -43,14 +43,14 @@ class JobRepository {
         const query = `
         SELECT * FROM jobs
         WHERE status = $1
-        ORDER BY createdd_at DESC
+        ORDER BY created_at DESC
         LIMIT $2
         `;
         try{
             const result = await database.query(query, [status,limit]);
             return result.rows;
         } catch (error) {
-            logger.error('Error fetching jobs by status', {error: error.messsage,status});
+            logger.error('Error fetching jobs by status', {error: error.message,status});
             throw error;
         }
     }
@@ -67,7 +67,7 @@ class JobRepository {
        }
 
        if(additionalData.attempts !== undefined){
-        fields.push(`attempts == $${paramIndex}`);
+        fields.push(`attempts = $${paramIndex}`);
         values.push(additionalData.attempts);
         paramIndex++;
        }
@@ -95,7 +95,7 @@ class JobRepository {
         throw error;
     }
  }
-       async moveToDDeadLetterQueue(jobId, jobData, failureReason, attempts) {
+       async moveToDeadLetterQueue(jobId, jobData, failureReason, attempts) {
           const query = `
           INSERT INTO dead_letter_queue
           (job_id, original_job_data, failure_reason, attempts)
@@ -123,7 +123,7 @@ class JobRepository {
        async addJobHistory(jobId, attemptNumber, status, additionalData = {}) {
         const query = `
         INSERT INTO job_history
-        (job_id, attempt_number, status, started_at, completed at, duration_ms,error_message)
+        (job_id, attempt_number, status, started_at, completed_at, duration_ms,error_message)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
         `;
@@ -139,10 +139,65 @@ class JobRepository {
         ];
 
         try{
-            const result = await database. query(query, values);
+            const result = await database.query(query, values);
             return result.rows[0];
         } catch (error) {
             logger.error('Error adding job history', {error: error.message, jobId});
+            throw error;
+        }
+    }
+
+    async getJobsByPriority(priority, limit = 100) {
+        const query = `
+        SELECT * FROM jobs
+        WHERE priority = $1
+        ORDER BY created_at DESC
+        LIMIT $2
+        `;
+        try {
+            const result = await database.query(query, [priority, limit]);
+            return result.rows;
+        } catch (error) {
+            logger.error('Error fetching jobs by priority', {error: error.message, priority});
+            throw error;
+        }
+    }
+
+    async getJobStats() {
+        const query = `
+        SELECT 
+            status,
+            COUNT(*) as count,
+            priority
+        FROM jobs
+        GROUP BY status, priority
+        ORDER BY priority, status
+        `;
+        try {
+            const result = await database.query(query);
+            return result.rows;
+        } catch (error) {
+            logger.error('Error fetching job stats', {error: error.message});
+            throw error;
+        }
+    }
+
+    async getSystemMetrics(since) {
+        const query = `
+        SELECT 
+            status,
+            COUNT(*) as count,
+            AVG(EXTRACT(EPOCH FROM (completed_at - started_at)) * 1000) as avg_duration_ms
+        FROM jobs
+        WHERE created_at >= $1
+        GROUP BY status
+        ORDER BY status
+        `;
+        try {
+            const result = await database.query(query, [since]);
+            return result.rows;
+        } catch (error) {
+            logger.error('Error fetching system metrics', {error: error.message});
             throw error;
         }
     }

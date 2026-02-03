@@ -87,7 +87,7 @@ class JobStrategyFactory {
     }
 
     getSupportedJobTypes(){
-        return Object.Keys(this.strategies);
+        return Object.keys(this.strategies);
     }
 }
 

@@ -18,13 +18,11 @@ A production-ready distributed job queue system built with Node.js, Redis, BullM
 1. Install dependencies:
 npm install
 
-3. Create database:
+2. Create database:
 psql -U postgres -c "CREATE DATABASE job_queue_db;"
 
-
-4. Run migrations:
+3. Run migrations:
 npm run migrate
-
 
 ## Running the Application
 Coming soon...

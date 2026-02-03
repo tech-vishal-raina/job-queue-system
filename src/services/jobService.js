@@ -67,7 +67,7 @@ class JobService{
             maxAttempts: job.max_attempts,
             result: job.result,
             errorMessage: job.error_message,
-            createdAt: job>created_at,
+            createdAt: job.created_at,
             completedAt: job.completed_at,
         };
 
@@ -81,7 +81,7 @@ class JobService{
             const jobs = await this.jobRepository.getJobsByStatus(status,limit);
             return jobs.map(job => ({
               jobId: job.job_id,
-              nme: job.name,
+              name: job.name,
               priority: job.priority,
               status: job.status,
               createdAt: job.created_at,
@@ -89,6 +89,48 @@ class JobService{
 
         }catch(error){
             logger.error('Error fetching jobs by status', {error: error.message,status});
+            throw error;
+        }
+    }
+
+    async getJobsByPriority(priority, limit = 100){
+        try {
+            const jobs = await this.jobRepository.getJobsByPriority(priority, limit);
+            return jobs.map(job => ({
+              jobId: job.job_id,
+              name: job.name,
+              priority: job.priority,
+              status: job.status,
+              createdAt: job.created_at,
+            }));
+
+        }catch(error){
+            logger.error('Error fetching jobs by priority', {error: error.message,priority});
+            throw error;
+        }
+    }
+
+    async getQueueMetrics(){
+        try {
+            const queueMetrics = await this.queueManager.getQueueMetrics();
+            const jobStats = await this.jobRepository.getJobStats();
+            
+            return {
+                queueMetrics,
+                jobStats,
+            };
+        }catch(error){
+            logger.error('Error fetching queue metrics', {error: error.message});
+            throw error;
+        }
+    }
+
+    async getSystemMetrics(since){
+        try {
+            const metrics = await this.jobRepository.getSystemMetrics(since);
+            return metrics;
+        }catch(error){
+            logger.error('Error fetching system metrics', {error: error.message});
             throw error;
         }
     }

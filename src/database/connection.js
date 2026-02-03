@@ -1,6 +1,6 @@
 const {Pool} = require('pg');
 const config = require('../config/config.js');
-const config = require('../config/logger.js');
+const logger = require('../config/logger.js');
 
 class Database {
     constructor() {
@@ -45,6 +45,16 @@ class Database {
         } catch(error){
             logger.error('PostgreSQL: Connection failed',{error:error.message});
             return false;
+        }
+    }
+
+    async close(){
+        try{
+            await this.pool.end();
+            logger.info('PostgreSQL: Connection pool closed');
+        } catch(error){
+            logger.error('PostgreSQL: Error closing connection pool',{error:error.message});
+            throw error;
         }
     }
 }

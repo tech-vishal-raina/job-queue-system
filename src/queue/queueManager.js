@@ -1,6 +1,6 @@
 const {Queue} = require('bullmq');
 const redis = require('./redis');
-const logger = require('/config/logger');
+const logger = require('../config/logger');
 
 class QueueBuilder {
     constructor(name){
@@ -72,6 +72,29 @@ class QueueManager{
         const job = await queue.add(jobName, jobData);
         logger.info('Job added to queue',{jobId: job.id,priority});
         return job;
+    }
+
+    async getQueueMetrics(){
+        try {
+            const metrics = {};
+            for (const [priority, queue] of Object.entries(this.queues)) {
+                const waiting = await queue.getWaiting();
+                const active = await queue.getActive();
+                const completed = await queue.getCompleted();
+                const failed = await queue.getFailed();
+                
+                metrics[priority] = {
+                    waiting: waiting.length,
+                    active: active.length,
+                    completed: completed.length,
+                    failed: failed.length,
+                };
+            }
+            return metrics;
+        } catch (error) {
+            logger.error('Error fetching queue metrics', {error: error.message});
+            throw error;
+        }
     }
 }
 
